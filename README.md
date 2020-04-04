@@ -53,10 +53,10 @@ $ kubectl help
 # Check pods, deployments, daemonsets, statefulsets for a namespace
 # called "mynamespace" in verbose mode.
 #
-$ kubectl contstat somenamespace v
+$ kubectl contstat mynamespace v
 
 # Check pods, deployments, daemonsets, statefulsets for a namespace
 # called "mynamespace".
 #
-$ kubectl contstat somenamespace
+$ kubectl contstat mynamespace
 ```
