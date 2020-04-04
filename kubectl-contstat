@@ -36,7 +36,7 @@ function checker {
         # Perform basic Pod check
         #
         if [[ "$verbose" != "" ]]; then
-            printline "Checking Pods for not in Complete or Running ... "
+            printline "$ns: Checking Pods for not in Complete or Running ... "
         fi
 	count=$(kubectl get po -n $ns -o wide --no-headers| grep -v '\|Complete\|Running' | wc -l)
         if [ $count -ne 0 ]; then
@@ -45,20 +45,20 @@ function checker {
 
         # Check for deployment being fully ready.
         #
-	printline "Checking Deployments ..."
+	printline "$ns: Checking Deployments ..."
         for DEPLOYMENTS in $(kubectl get deployment -n $ns --no-headers | awk '{print $1}'); do
             for DPL in $DEPLOYMENTS; do
                 kubectl_output=$(kubectl get deployment -n $ns $DPL -o json)
                 desired_replicas=$(echo ${kubectl_output} | jq .spec.replicas | sed 's/null/0/')
                 curr_replicas=$(echo ${kubectl_output} | jq .status.readyReplicas | sed 's/null/0/')
                 if [ $desired_replicas -eq 0 ]; then
-                    printline "WARN" " Deployment $DPL: Readiness check SKIPPED due to desired replicas=0"
+                    printline "WARN" "$ns: Deployment $DPL: Readiness check SKIPPED due to desired replicas=0"
                 else
                     if [[ "$verbose" != "" ]]; then
-                        printline "Checking Deployment: $DPL"
+                        printline "$ns: Checking Deployment: $DPL"
                     fi
                     if [ ${desired_replicas} -ne ${curr_replicas} ]; then
-                        printline " Deployment $DPL: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
+                        printline "  Deployment $DPL: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
                         cont_ready=false
                     fi
                 fi
@@ -67,17 +67,17 @@ function checker {
 
         # Check for statefulsets being fully ready.
         #
-	printline "Checking Statefulsets ..."
+	printline "$ns: Checking Statefulsets ..."
         for STATEFUL_SETS in $(kubectl get statefulset -n $ns --no-headers | awk '{print $1}'); do
             for SS in $STATEFUL_SETS; do
                 kubectl_output=$(kubectl get statefulset -n $ns $SS -o json)
                 desired_replicas=$(echo ${kubectl_output} | jq .spec.replicas | sed 's/null/0/')
                 curr_replicas=$(echo ${kubectl_output} | jq .status.currentReplicas | sed 's/null/0/')
                 if [[ "$verbose" != "" ]]; then
-                    printline "Checking Statefulset: $DPL"
+                    printline "$ns: Checking Statefulset: $DPL"
                 fi
                 if [ ${desired_replicas} -ne ${curr_replicas} ]; then
-                    printline " Statefulset $SS: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
+                    printline "  Statefulset $SS: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
                     cont_ready=false
                 fi
              done
@@ -85,27 +85,27 @@ function checker {
 
         # Check for daemonsets being fully ready.
         #
-	printline "Checking Daemonsets ..."
+	printline "$ns: Checking Daemonsets ..."
         for DAEMON_SETS in $(kubectl get daemonset -n $ns --no-headers | awk '{print $1}'); do
             for DS in $DAEMON_SETS; do
                 kubectl_output=$(kubectl get daemonset -n $ns $DS -o json)
                 desired_replicas=$(echo ${kubectl_output} | jq .status.desiredNumberScheduled | sed 's/null/0/')
                 curr_replicas=$(echo ${kubectl_output} | jq .status.numberReady | sed 's/null/0/')
                 if [[ "$verbose" != "" ]]; then
-                    printline "Checking Daemonset: $DPL"
+                    printline "$ns: Checking Daemonset: $DPL"
                 fi
                 if [ ${desired_replicas} -ne ${curr_replicas} ]; then
-                    printline " Daemonset $DS: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
+                    printline "  Daemonset $DS: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
                     cont_ready=false
                 fi
              done
         done
 
 	if [ "$cont_ready" == "true" ]; then
-            echo "All Deployment, Statefulset, and Daemonsets Ready"
+            echo "$ns: All Deployment, Statefulset, and Daemonsets Ready"
             return 0
         else
-            echo "Not ready"
+            echo "$ns: Not ready"
             return 1
         fi
 }
