@@ -1,0 +1,113 @@
+#!/bin/bash
+function printline {
+        echo $1
+}
+
+function checker {
+	if [ "$1" == "help" ]; then
+            echo ""
+            echo "  Usage:"
+            echo ""
+            echo "    kubectl contstat <aNamespace> [<verbose>]"
+            echo ""
+            echo "    We use the current context (`kubectl config current-context`)"
+            echo "    Checks Ready status of Pods in Deployments, Daemonsets, and Statefulsets"
+            echo "    and checks for Pods not in Complete or Running state"
+            echo ""
+            echo "    kubectl constat mynamespace v ;# will use verbose mode"
+            echo ""
+            exit 0
+        fi
+
+        # Allow users to specify a namespace.
+        #
+	if [ "$1" == "" ]; then
+            theNamespace=default
+        else 
+            theNamespace=$1
+        fi
+
+        # Check if certain Kubernetes controller pods are ready.
+        #
+        local cont_ready=true
+	local ns=$theNamespace
+        local verbose=$2
+
+        # Perform basic Pod check
+        #
+        if [[ "$verbose" != "" ]]; then
+            printline "Checking Pods for not in Complete or Running ... "
+        fi
+	count=$(kubectl get po -n $ns -o wide --no-headers| grep -v '\|Complete\|Running' | wc -l)
+        if [ $count -ne 0 ]; then
+            cont_ready=false
+        fi
+
+        # Check for deployment being fully ready.
+        #
+	printline "Checking Deployments ..."
+        for DEPLOYMENTS in $(kubectl get deployment -n $ns --no-headers | awk '{print $1}'); do
+            for DPL in $DEPLOYMENTS; do
+                kubectl_output=$(kubectl get deployment -n $ns $DPL -o json)
+                desired_replicas=$(echo ${kubectl_output} | jq .spec.replicas | sed 's/null/0/')
+                curr_replicas=$(echo ${kubectl_output} | jq .status.readyReplicas | sed 's/null/0/')
+                if [ $desired_replicas -eq 0 ]; then
+                    printline "WARN" " Deployment $DPL: Readiness check SKIPPED due to desired replicas=0"
+                else
+                    if [[ "$verbose" != "" ]]; then
+                        printline "Checking Deployment: $DPL"
+                    fi
+                    if [ ${desired_replicas} -ne ${curr_replicas} ]; then
+                        printline " Deployment $DPL: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
+                        cont_ready=false
+                    fi
+                fi
+             done
+        done
+
+        # Check for statefulsets being fully ready.
+        #
+	printline "Checking Statefulsets ..."
+        for STATEFUL_SETS in $(kubectl get statefulset -n $ns --no-headers | awk '{print $1}'); do
+            for SS in $STATEFUL_SETS; do
+                kubectl_output=$(kubectl get statefulset -n $ns $SS -o json)
+                desired_replicas=$(echo ${kubectl_output} | jq .spec.replicas | sed 's/null/0/')
+                curr_replicas=$(echo ${kubectl_output} | jq .status.currentReplicas | sed 's/null/0/')
+                if [[ "$verbose" != "" ]]; then
+                    printline "Checking Statefulset: $DPL"
+                fi
+                if [ ${desired_replicas} -ne ${curr_replicas} ]; then
+                    printline " Statefulset $SS: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
+                    cont_ready=false
+                fi
+             done
+        done
+
+        # Check for daemonsets being fully ready.
+        #
+	printline "Checking Daemonsets ..."
+        for DAEMON_SETS in $(kubectl get daemonset -n $ns --no-headers | awk '{print $1}'); do
+            for DS in $DAEMON_SETS; do
+                kubectl_output=$(kubectl get daemonset -n $ns $DS -o json)
+                desired_replicas=$(echo ${kubectl_output} | jq .status.desiredNumberScheduled | sed 's/null/0/')
+                curr_replicas=$(echo ${kubectl_output} | jq .status.numberReady | sed 's/null/0/')
+                if [[ "$verbose" != "" ]]; then
+                    printline "Checking Daemonset: $DPL"
+                fi
+                if [ ${desired_replicas} -ne ${curr_replicas} ]; then
+                    printline " Daemonset $DS: Still not Ready, current/desired=${curr_replicas}/${desired_replicas}"
+                    cont_ready=false
+                fi
+             done
+        done
+
+	if [ "$cont_ready" == "true" ]; then
+            echo "All Deployment, Statefulset, and Daemonsets Ready"
+            return 0
+        else
+            echo "Not ready"
+            return 1
+        fi
+}
+checker $1 $2
+exit $?
