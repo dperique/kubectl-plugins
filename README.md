@@ -1,4 +1,4 @@
-# Example kubectl plugin
+# Example kubectl plugins
 
 Sometimes plain kubectl isn't enough and you end up making scripts that
 automate more checks you wish kubectl could do.  Often, those checks are
@@ -31,7 +31,7 @@ $ kubectl contstat help
 
     kubectl contstat <aNamespace> [<verbose>]
 
-    We use the current context (dperiquet-dal2-rk219-s04-mzone7285)
+    We use the current context (dp-test)
     Checks Ready status of Pods in Deployments, Daemonsets, and Statefulsets
     and checks for Pods not in Complete or Running state
 
