@@ -22,7 +22,7 @@ Method 1: For those of you with Internet access, do this:
 ```
 $ cd
 $ git clone https://github.com/dperique/kubectl-plugins.git
-$ export PATH=$PATH:kubectl-plugins
+$ export PATH=$PATH:~/kubectl-plugins
 $ kubectl config use-context <some-context>
 ```
 
@@ -44,7 +44,7 @@ $ scp kubectl-plugins/* deployer1:kubectl-plugins
 # From your "deployer1" machine, set your path.
 #
 $ ssh deployer1
-$ export PATH=$PATH:kubectl-plugins
+$ export PATH=$PATH:~/kubectl-plugins
 $ kubectl config use-context <some-context>
 ```
 
