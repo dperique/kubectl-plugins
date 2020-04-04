@@ -15,16 +15,42 @@ $ chmod a+x kubectl
 $ sudo mv kubectl /usr/local/bin
 ```
 
-For any kubectl plugin you want to use do something like this:
+For any kubectl plugin you want to use, do something like this:
+
+Method 1: For those of you with Internet access, do this:
 
 ```
 $ cd
 $ git clone https://github.com/dperique/kubectl-plugins.git
 $ export PATH=$PATH:kubectl-plugins
 $ kubectl config use-context <some-context>
+```
 
-# Tryout the "contstat" plugin.
+Method 2: For those of you that run things on machines without Internet access,
+do this (we assume you have ssh access to your other machine; I will
+call it "deployer1"):
+
+```
+# On your machine with Internet access, clone the repo:
 #
+$ cd
+$ git clone https://github.com/dperique/kubectl-plugins.git
+
+# scp the files to your "deployer1" machine.
+#
+$ ssh deployer1 "mkdir kubectl-plugins"
+$ scp kubectl-plugins/* deployer1:kubectl-plugins
+
+# From your "deployer1" machine, set your path.
+#
+$ ssh deployer1
+$ export PATH=$PATH:kubectl-plugins
+$ kubectl config use-context <some-context>
+```
+
+Tryout the "contstat" plugin.
+
+```
 $ kubectl contstat help
 
   Usage:
