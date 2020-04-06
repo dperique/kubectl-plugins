@@ -38,7 +38,8 @@ function checker {
         if [[ "$verbose" != "" ]]; then
             printline "$ns: Checking Pods for not in Complete or Running ... "
         fi
-	count=$(kubectl get po -n $ns -o wide --no-headers| grep -v '\|Complete\|Running' | wc -l)
+	kubectl get po -n $ns -o wide --no-headers| grep -v 'Complete\|Running'
+	count=$(kubectl get po -n $ns -o wide --no-headers| grep -v 'Complete\|Running' | wc -l)
         if [ $count -ne 0 ]; then
             cont_ready=false
         fi
