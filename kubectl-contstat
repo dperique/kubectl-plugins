@@ -53,7 +53,7 @@ function checker {
                 desired_replicas=$(echo ${kubectl_output} | jq .spec.replicas | sed 's/null/0/')
                 curr_replicas=$(echo ${kubectl_output} | jq .status.readyReplicas | sed 's/null/0/')
                 if [ $desired_replicas -eq 0 ]; then
-                    printline "WARN" "$ns: Deployment $DPL: Readiness check SKIPPED due to desired replicas=0"
+                    printline "WARN $ns: Deployment $DPL: Readiness check SKIPPED due to desired replicas=0"
                 else
                     if [[ "$verbose" != "" ]]; then
                         printline "$ns: Checking Deployment: $DPL"
