@@ -103,10 +103,10 @@ function checker {
         done
 
 	if [ "$cont_ready" == "true" ]; then
-            echo "$ns: All Deployment, Statefulset, and Daemonsets Ready"
+            printf "%-10s............................................................PASS" $ns
             return 0
         else
-            echo "$ns: Not ready"
+            printf "%-10s............................................................FAIL" $ns
             return 1
         fi
 }
