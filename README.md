@@ -86,3 +86,24 @@ $ kubectl contstat mynamespace v
 #
 $ kubectl contstat mynamespace
 ```
+
+## kubectl rollingRestart plugin
+
+This one allows you restart pods in a given deployment in a given namespace in a "rolling" fashion.
+In recent version of kubectl, there is a rolling restart command.  Because some folks are on earlier
+versions of Kubernetes, we need to use an earlier version of kubectl which does not have this
+support.
+
+```
+$ kubectl rollingRestart
+
+    Usage:
+      kubectl rolling <aNamespace> <aDeployment>
+
+      Do a rolling restart of pods for the given deployment in the given
+      namespace.
+```
+
+It will list all pods in a namespace and take only those beginning with the name of the deployment
+(like doing `kubectl get po -n aNamespace|grep aDeployment`), restart those pods one at a time,
+and wait for the deployment to have all pods in fully ready state before moving to the next pod.
