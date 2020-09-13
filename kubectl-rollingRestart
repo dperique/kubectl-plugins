@@ -1,0 +1,103 @@
+#!/usr/bin/env python3
+
+import sys
+import time
+import subprocess
+from subprocess import PIPE
+from functools import partial
+from typing import List
+
+if len(sys.argv) < 3:
+    print(f"""
+    Usage:
+      kubectl rolling <aNamespace> <aDeployment>
+
+      Do a rolling restart of pods for the given deployment in the given
+      namespace.
+
+    """)
+    sys.exit(1)
+else:
+    ns = sys.argv[1]
+    dpl = sys.argv[2]
+
+# Max time to wait for a deployment to get to fully up.
+#
+MAX_WAIT = 10
+
+def showPods(dpl:str) -> List[str]:
+    """
+    Print out the pods of a Deployment and return a list of those lines.
+    Abort if there's an error.
+    """
+
+    tt = runCmd(f"kubectl -n {ns} get po --no-headers".split())
+    if tt.stderr:
+        print(f"Got error: {tt.stderr.decode()}")
+        sys.exit(1)
+    else:
+        tmp_output = tt.stdout.decode().splitlines()
+    output = []
+    for line in tmp_output:
+        if f"{dpl}-" in line: 
+            print(line)
+            output.append(line)
+    return output
+
+
+def waitForDeployment(aNs: str, aDeploy: str):
+    """
+    Check a Deployment and loop until it's spec.replicas == spec.availableReplicas. I.e.,
+    loop until the Deployment is fully up.
+    Abort if there's any error.
+    """
+    count = 1
+    while count < MAX_WAIT:
+        _ = showPods(aDeploy)
+        specStr = "{.spec.replicas}"
+        tt = runCmd(f"kubectl -n {ns} get deployment {aDeploy} --output=jsonpath={specStr}".split())
+        if not tt.returncode == 0:
+            print(tt.stderr.decode())
+            sys.exit(1)
+        else:
+            replicas = tt.stdout.decode()
+            print(f"Replicas: {replicas}")
+    
+        specStr = "{.status.availableReplicas}"
+        tt = runCmd(f"kubectl -n {ns} get deployment {aDeploy} --output=jsonpath={specStr}".split())
+        if not tt.returncode == 0:
+            print(tt.stderr.decode())
+            sys.exit(1)
+        else:
+            availableReplicas = tt.stdout.decode()
+            print(f"Available: {availableReplicas}")
+
+        if replicas == availableReplicas:
+            break
+
+        print()
+        print(f"{count}) sleeping for 1 ...")
+        time.sleep(1)
+        count += 1
+
+    else:
+        print(f"Error: The {aDeploy} deployment never returned to fully up")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    print(f"\nRestarting replicas for {ns}/{dpl}:\n")
+
+    runCmd = partial(subprocess.run, stdout=PIPE, stderr=PIPE)
+
+    for line in showPods(dpl):
+        pod = line.split()[0]
+        print()
+        delStr = f"kubectl -n {ns} delete po {pod} --force --grace-period=0"
+        print(f"{'*' * 15} {delStr}\n")
+        tt = runCmd(delStr.split())
+        if not tt.returncode == 0:
+            # For any errors, abort for safety.
+            #
+            print(f"Got error: {tt.stderr.decode()}")
+            sys.exit(1)
+        waitForDeployment(ns, dpl)
